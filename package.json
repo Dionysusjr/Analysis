@@ -1,0 +1,33 @@
+{
+  "name": "ja-dividend-dashboard",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Live dashboard for Jamaican dividend-paying stocks with real-time price tracking and a related news/sentiment feed.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0",
+    "next": "^14.2.5",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "rss-parser": "^3.13.0",
+    "swr": "^2.2.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.9",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.39",
+    "tailwindcss": "^3.4.4",
+    "typescript": "^5.5.3"
+  },
+  "engines": {
+    "node": ">=18.18"
+  }
+}
