@@ -83,6 +83,9 @@ export default function DashboardPage() {
             <p className="text-sm text-gray-400">
               Live-updating dashboard for Jamaican dividend-paying stocks, with a related news &amp; sentiment feed.
             </p>
+            <a href="/congress" className="mt-1 inline-block text-xs text-sky-400 underline">
+              Capitol Ledger — US political trading disclosures →
+            </a>
           </div>
           {stockData && (
             <LiveStatusBadge

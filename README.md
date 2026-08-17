@@ -1,3 +1,14 @@
+# Analysis — live market dashboards
+
+Two dashboards in one Next.js app:
+
+| Route | Dashboard |
+| --- | --- |
+| `/` | **JA Dividend Watch** — Jamaican (JSE) dividend stocks + news/sentiment feed |
+| `/congress` | **Capitol Ledger** — US political trading disclosures ([docs](docs/capitol-ledger.md)) |
+
+---
+
 # JA Dividend Watch
 
 A live-updating dashboard for Jamaican (JSE) dividend-paying stocks: price,

@@ -2,16 +2,18 @@
   "name": "ja-dividend-dashboard",
   "version": "0.1.0",
   "private": true,
-  "description": "Live dashboard for Jamaican dividend-paying stocks with real-time price tracking and a related news/sentiment feed.",
+  "description": "Dashboards: live Jamaican dividend stocks, and Capitol Ledger — US political trading disclosures aggregated from official and commercial sources.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "verify:parsers": "tsx --tsconfig tsconfig.json scripts/verify-parsers.ts"
   },
   "dependencies": {
     "cheerio": "^1.0.0",
+    "fflate": "^0.8.3",
     "next": "^14.2.5",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -25,6 +27,7 @@
     "autoprefixer": "^10.4.19",
     "postcss": "^8.4.39",
     "tailwindcss": "^3.4.4",
+    "tsx": "^4.23.12",
     "typescript": "^5.5.3"
   },
   "engines": {
