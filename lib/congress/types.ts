@@ -278,10 +278,19 @@ export interface SourceStatus {
   needsCredentials?: boolean;
 }
 
+/**
+ * What the snapshot's records actually are:
+ *   live      - real disclosures from live sources
+ *   simulated - the built-in simulator (fictional filers), clearly labelled
+ *   empty     - strict live mode with no data returned yet (never placeholder)
+ */
+export type SnapshotDataState = "live" | "simulated" | "empty";
+
 export interface Snapshot {
   generatedAt: string;
   /** False when every record came from the simulator. */
   isLive: boolean;
+  dataState: SnapshotDataState;
   marketOpen: boolean;
   stats: SnapshotStats;
   politicians: PoliticianSummary[];

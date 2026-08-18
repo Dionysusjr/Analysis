@@ -104,7 +104,7 @@ export default function CongressDashboard() {
 
         {data && (
           <DataBanner
-            isLive={data.isLive}
+            dataState={data.dataState}
             generatedAt={data.generatedAt}
             marketOpen={data.marketOpen}
             sources={data.sources}

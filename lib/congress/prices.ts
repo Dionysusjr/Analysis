@@ -11,17 +11,23 @@ import { AssetQuote, PricePoint } from "./types";
  *   yahoo     - Yahoo Finance chart JSON, no key but undocumented/unstable
  *   synthetic - deterministic simulated series (default, zero setup)
  *
- * A failure never breaks the page: we fall back to the synthetic series and flag
- * `isLive: false` so the UI can label it clearly rather than passing off
- * simulated prices as market data.
+ * A failure never breaks the page. In auto/simulated modes we fall back to the
+ * synthetic series and flag `isLive: false` so the UI labels it clearly; in
+ * strict live mode (production default) we return no data instead — see
+ * getPriceHistory's `allowSynthetic` option.
  */
 
 export type PriceSourceKind = "synthetic" | "stooq" | "yahoo";
 
+/**
+ * Default price source: synthetic in development (zero setup), stooq in
+ * production/deployment so a published page shows real market prices, not
+ * placeholders. Override with PRICE_DATA_SOURCE.
+ */
 export function configuredPriceSource(): PriceSourceKind {
-  const raw = (process.env.PRICE_DATA_SOURCE ?? "synthetic").toLowerCase();
+  const raw = (process.env.PRICE_DATA_SOURCE ?? "").toLowerCase();
   if (raw === "stooq" || raw === "yahoo" || raw === "synthetic") return raw;
-  return "synthetic";
+  return process.env.NODE_ENV === "production" ? "stooq" : "synthetic";
 }
 
 /**
@@ -156,7 +162,8 @@ async function fetchYahooHistory(ticker: string): Promise<PricePoint[]> {
 
 export interface PriceResult {
   history: PricePoint[];
-  quote: AssetQuote;
+  /** Absent when no price data is available (strict live mode, upstream down). */
+  quote?: AssetQuote;
   isLive: boolean;
   warning?: string;
 }
@@ -181,8 +188,19 @@ function quoteFrom(ticker: string, name: string, history: PricePoint[], isLive: 
   };
 }
 
-/** Fetch price history for one ticker, falling back to the synthetic series. */
-export async function getPriceHistory(ticker: string, name: string): Promise<PriceResult> {
+/**
+ * Fetch price history for one ticker.
+ *
+ * `allowSynthetic` controls the failure path: when true (demo/auto contexts) a
+ * dead upstream falls back to the labelled synthetic series; when false (strict
+ * live mode) it returns NO data instead — a published live page must never show
+ * placeholder prices, even flagged ones.
+ */
+export async function getPriceHistory(
+  ticker: string,
+  name: string,
+  { allowSynthetic = true }: { allowSynthetic?: boolean } = {},
+): Promise<PriceResult> {
   const source = configuredPriceSource();
 
   if (source !== "synthetic") {
@@ -192,6 +210,9 @@ export async function getPriceHistory(ticker: string, name: string): Promise<Pri
       return { history, quote: quoteFrom(ticker, name, history, true), isLive: true };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
+      if (!allowSynthetic) {
+        return { history: [], isLive: false, warning: `No live price data: ${message}` };
+      }
       const history = syntheticHistory(ticker);
       return {
         history,
@@ -200,6 +221,14 @@ export async function getPriceHistory(ticker: string, name: string): Promise<Pri
         warning: `Simulated prices: ${message}`,
       };
     }
+  }
+
+  if (!allowSynthetic) {
+    return {
+      history: [],
+      isLive: false,
+      warning: "PRICE_DATA_SOURCE=synthetic is disabled in live mode — set stooq or yahoo",
+    };
   }
 
   const history = syntheticHistory(ticker);

@@ -1,7 +1,7 @@
 import { cached } from "./cache";
 import { buildAssetTraders, buildHoldings, computePerformance, findAsset } from "./aggregate";
-import { assembleSnapshot, collectRawData, RawData } from "./providers";
-import { getPriceHistory } from "./prices";
+import { assembleSnapshot, collectRawData, configuredMode, RawData } from "./providers";
+import { configuredPriceSource, getPriceHistory, PriceResult } from "./prices";
 import { AssetDetail, PoliticianDetail, PortfolioTier, Snapshot } from "./types";
 
 /**
@@ -20,7 +20,7 @@ function snapshotTtlMs(): number {
   if (Number.isFinite(configured) && configured >= 0) return configured;
   // Live sources are slow and metered; the simulator is free, and a short TTL
   // there lets the simulated live tape advance between polls.
-  return (process.env.CONGRESS_DATA_SOURCE ?? "auto") === "simulated" ? 10_000 : 300_000;
+  return configuredMode() === "simulated" ? 10_000 : 300_000;
 }
 
 function getRaw(): Promise<RawData> {
@@ -60,7 +60,17 @@ export async function getAssetDetail(idOrTicker: string): Promise<AssetDetail | 
 
   // Price history only exists for listed tickers. Funds, municipal bonds and
   // untickered assets get the disclosure view without a price chart.
-  const priced = summary.ticker ? await getPriceHistory(summary.ticker, summary.name) : null;
+  // In strict live mode the synthetic fallback is disabled: a published page
+  // shows no chart rather than placeholder prices. Cached per ticker so a
+  // public page doesn't hit the price upstream on every request.
+  const allowSynthetic = configuredMode() !== "live";
+  const priced: PriceResult | null = summary.ticker
+    ? await cached(
+        `price:${configuredPriceSource()}:${allowSynthetic}:${summary.ticker}`,
+        () => getPriceHistory(summary.ticker!, summary.name, { allowSynthetic }),
+        { ttlMs: 10 * 60 * 1000 },
+      )
+    : null;
   const history = priced?.history ?? [];
 
   const tierById = new Map<string, PortfolioTier>(snapshot.politicians.map((p) => [p.id, p.tier]));

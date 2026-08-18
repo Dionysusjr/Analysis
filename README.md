@@ -7,6 +7,37 @@ Two dashboards in one Next.js app:
 | `/` | **JA Dividend Watch** — Jamaican (JSE) dividend stocks + news/sentiment feed |
 | `/congress` | **Capitol Ledger** — US political trading disclosures ([docs](docs/capitol-ledger.md)) |
 
+## Publish to the internet (get a shareable link)
+
+The fastest way to a public URL is Vercel — free tier, no config files needed:
+
+1. Go to **[vercel.com/new](https://vercel.com/new)**, sign in with GitHub, and
+   import **`Dionysusjr/Analysis`** (grant access if prompted). Vercel detects
+   Next.js automatically — accept the defaults.
+2. Under *Environment Variables*, add **`CONTACT_EMAIL`** = your email (the
+   SEC's fair-access policy requires requests identify their sender; the
+   House/Senate sites behave better with one too).
+3. Click **Deploy**. In ~2 minutes you get a public link like
+   `https://analysis-xxxx.vercel.app` — that's the URL to share.
+   `/congress` is the Capitol Ledger dashboard; both pages self-refresh
+   every 30 seconds in the browser.
+
+Every push to the production branch auto-redeploys; other branches get their
+own preview URLs.
+
+**No placeholder data when deployed:** in production the Capitol Ledger
+defaults to strict `live` mode — the simulator never runs, prices come from
+real market data (stooq), and if an upstream source is down the page shows an
+honest "awaiting live data" state with per-source status instead of
+placeholder filers. See [docs/capitol-ledger.md](docs/capitol-ledger.md) for
+what each free source can and cannot provide (short version: Senate eFD
+yields ticker-level trades; the House index is filing-level only unless you
+add an aggregator API key). The JSE dashboard keeps its own
+`STOCK_DATA_SOURCE` setting — set it to `scrape` or `mdf` for live JSE data.
+
+Also deploys anywhere else Next.js runs (Node host, Docker, Render, Fly.io):
+`npm run build && npm start`.
+
 ---
 
 # JA Dividend Watch

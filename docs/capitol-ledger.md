@@ -65,10 +65,20 @@ advice.
 
 ## Data sources
 
-Set via `CONGRESS_DATA_SOURCE` (`auto` | `simulated` | `live`). Every source runs
-concurrently and independently, so one dead upstream degrades the dashboard
-instead of breaking it — per-source health is shown in the UI banner, including
-failures and which keys are missing.
+Set via `CONGRESS_DATA_SOURCE` (`auto` | `simulated` | `live`):
+
+- `auto` — live sources with simulator fallback (**default in development**);
+- `simulated` — simulator only, for local demos;
+- `live` — **strict: the simulator never runs** (**default in production**, so
+  a published site can never show placeholder data). If no source has returned
+  transactions, the page renders a clear "LIVE MODE — AWAITING DATA" state with
+  per-source diagnostics instead of placeholder filers, and keeps retrying on
+  the normal refresh cycle. The same strictness applies to prices: in live
+  mode a failed price fetch shows no chart rather than a synthetic series.
+
+Every source runs concurrently and independently, so one dead upstream degrades
+the dashboard instead of breaking it — per-source health is shown in the UI
+banner, including failures and which keys are missing.
 
 ### Free primary sources (no API key)
 
@@ -134,9 +144,11 @@ the auto-refresh has something real to show.
 
 ### Price history
 
-`PRICE_DATA_SOURCE` = `synthetic` (default) | `stooq` (free daily CSV, no key) |
-`yahoo`. Any failure falls back to a deterministic synthetic series flagged
-`SIMULATED PRICE`, rather than passing simulated prices off as market data.
+`PRICE_DATA_SOURCE` = `synthetic` (default in dev) | `stooq` (free daily CSV,
+no key — default in production) | `yahoo`. In `auto`/`simulated` modes a failed
+fetch falls back to a deterministic synthetic series flagged `SIMULATED PRICE`;
+in strict `live` mode it shows no price data at all. Fetches are cached
+per-ticker for 10 minutes so a public page doesn't hammer the price upstream.
 
 ## Polling and caching
 
@@ -150,6 +162,15 @@ The cache (`lib/congress/cache.ts`) serves a stale value while a refresh runs in
 the background and single-flights concurrent loads. It is **in-process**: it
 resets on restart and is per-instance, so wire up Redis if you run several
 instances behind a load balancer.
+
+## Publishing
+
+See the "Publish to the internet" section of the top-level README: import the
+repo at vercel.com/new, set `CONTACT_EMAIL`, deploy, share the link. Production
+deployments default to strict live mode automatically. The API routes declare
+`maxDuration` (60s) because the House ZIP download outruns serverless default
+timeouts. The in-process cache means each warm serverless instance keeps its
+own copy — fine for one region/instance; add Redis for heavy traffic.
 
 ## Verifying the parsers
 

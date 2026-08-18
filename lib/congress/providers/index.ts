@@ -21,16 +21,30 @@ import { getSimulatedTrades } from "./simulated";
  * dead upstream degrades the dashboard rather than breaking it — each source's
  * health is reported back through `SourceStatus` and rendered in the UI.
  *
- * When no live source yields any trades we fall back to the simulator and mark
- * the snapshot `isLive: false`, so simulated data is never presented as real.
+ * In `auto` mode, when no live source yields any trades we fall back to the
+ * simulator and mark the snapshot `isLive: false`, so simulated data is never
+ * presented as real. In strict `live` mode (the production default) the
+ * simulator never runs at all — see configuredMode below.
  */
 
 export type TradeSourceMode = "auto" | "simulated" | "live";
 
+/**
+ * Data-source mode.
+ *
+ *   simulated - simulator only (local demo).
+ *   auto      - live sources, simulator fallback when none yields trades.
+ *   live      - STRICT: live sources only, the simulator NEVER runs. An empty
+ *               result renders as an honest "awaiting live data" state instead
+ *               of placeholder filers.
+ *
+ * The default is `auto` in development and `live` in production/deployment, so
+ * a published site never shows placeholder data unless explicitly configured to.
+ */
 export function configuredMode(): TradeSourceMode {
-  const raw = (process.env.CONGRESS_DATA_SOURCE ?? "auto").toLowerCase();
+  const raw = (process.env.CONGRESS_DATA_SOURCE ?? "").toLowerCase();
   if (raw === "simulated" || raw === "live" || raw === "auto") return raw;
-  return "auto";
+  return process.env.NODE_ENV === "production" ? "live" : "auto";
 }
 
 interface SourceOutcome {
@@ -226,10 +240,10 @@ export async function collectRawData(): Promise<RawData> {
   const liveTrades = mergeTrades(outcomes.filter((o) => o.ok).map((o) => o.trades));
   const liveFilings = outcomes.flatMap((o) => o.filings);
 
-  // Fall back to the simulator when live sources produced no transactions —
-  // either because none are configured, or because they only expose
-  // filing-level data (the House index) or all failed.
-  const useSimulator = mode === "simulated" || liveTrades.length === 0;
+  // The simulator runs only in `simulated` mode or as the `auto` fallback.
+  // In strict `live` mode an empty result stays empty — a published page must
+  // never show placeholder filers.
+  const useSimulator = mode === "simulated" || (mode === "auto" && liveTrades.length === 0);
 
   let trades = liveTrades;
   let isLive = liveTrades.length > 0;
@@ -255,6 +269,12 @@ export async function collectRawData(): Promise<RawData> {
           "The House Clerk index is filing-level only (detail is inside each PDF); add an aggregator API key for real ticker-level House data.",
       );
     }
+  } else if (trades.length === 0) {
+    warnings.push(
+      "Live mode: no source has returned transaction-level data yet. " +
+        "The House Clerk index is filing-level only (transaction detail lives in each PDF); " +
+        "Senate eFD provides ticker-level trades when reachable, and aggregator API keys add House transactions.",
+    );
   }
 
   // Roster: live metadata first, demo roster only when simulating.
@@ -293,9 +313,12 @@ export function assembleSnapshot(raw: RawData): Snapshot {
   const assets = buildAssets(raw.trades);
   const stats = buildStats(raw.trades, politicians, assets);
 
+  const simulated = raw.sources.some((s) => s.id === "simulated" && s.active);
+
   return {
     generatedAt: raw.generatedAt,
     isLive: raw.isLive,
+    dataState: raw.isLive ? "live" : simulated ? "simulated" : "empty",
     marketOpen: raw.marketOpen,
     stats,
     politicians,

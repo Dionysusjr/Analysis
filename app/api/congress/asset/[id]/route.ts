@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { getAssetDetail } from "@/lib/congress/service";
 
 export const dynamic = "force-dynamic";
+// Serverless platforms default to short function timeouts; upstream disclosure
+// sources are slow (the House index is a multi-MB ZIP), so allow up to 60s.
+export const maxDuration = 60;
 
 export async function GET(_request: Request, { params }: { params: { id: string } }) {
   try {

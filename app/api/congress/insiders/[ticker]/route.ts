@@ -3,6 +3,9 @@ import { cached } from "@/lib/congress/cache";
 import { fetchInsiderFilings } from "@/lib/congress/providers/sec-form4";
 
 export const dynamic = "force-dynamic";
+// Serverless platforms default to short function timeouts; upstream disclosure
+// sources are slow (the House index is a multi-MB ZIP), so allow up to 30s.
+export const maxDuration = 30;
 
 /**
  * SEC Form 4 corporate-insider filings for a ticker. Fetched lazily (only when
